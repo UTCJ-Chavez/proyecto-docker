@@ -1,0 +1,43 @@
+name: Validación de compilación
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  check-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Validar con docker/build-push-action
+        uses: docker/build-push-action@v6
+        with:
+          call: check
+
+  check-bake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Validar con docker/bake-action
+        uses: docker/bake-action@v6
+        with:
+          targets: validate-build
+
+  ejecutar:
+    needs: [check-build, check-bake]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Construir la imagen desde el repositorio
+        uses: docker/build-push-action@v6
+        with:
+          load: true
+          tags: proyecto-docker:validado
+      - name: Ejecutar el código
+        run: docker run --rm proyecto-docker:validado
+      - name: Ejecutar las pruebas
+        run: docker run --rm proyecto-docker:validado pytest -v
